@@ -1,0 +1,23 @@
+{
+    "name": "AI/ML Dev Environment",
+    "image": "mcr.microsoft.com/devcontainers/python:3.9",
+    "features": {
+      "ghcr.io/devcontainers/features/docker-in-docker:1": {}
+    },
+    "postCreateCommand": "pip install tensorflow keras torch torchvision numpy pandas matplotlib seaborn scikit-learn transformers nltk opencv-python",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-python.python",
+          "ms-toolsai.jupyter",
+          "ms-toolsai.ml"
+        ]
+      }
+    },
+    "settings": {
+      "python.defaultInterpreterPath": "/usr/local/bin/python"
+    },
+    "mounts": [
+      "source=${localWorkspaceFolder},target=/workspace,type=bind"
+    ]
+}
