@@ -20,4 +20,4 @@
     "mounts": [
       "source=${localWorkspaceFolder},target=/workspace,type=bind"
     ]
-}
+}   
