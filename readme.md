@@ -85,6 +85,7 @@ cicd-pipeline/
 ### GitHub Actions
 
 The pipeline includes:
+
 - **Code Quality**: Black, isort, flake8, mypy
 - **Testing**: pytest with coverage across Python 3.8-3.10
 - **Security**: Bandit and Safety scans
@@ -94,6 +95,7 @@ The pipeline includes:
 ### GitLab CI
 
 Similar pipeline structure with:
+
 - Parallel testing across Python versions
 - Docker image building
 - Environment-specific deployments
@@ -102,6 +104,7 @@ Similar pipeline structure with:
 ## 🐳 Docker
 
 ### Single Service
+
 ```bash
 # Build
 docker build -t cicd-pipeline .
@@ -111,6 +114,7 @@ docker run -p 8000:8000 cicd-pipeline
 ```
 
 ### Multi-Service with Docker Compose
+
 ```bash
 # Development
 docker-compose up -d
@@ -133,11 +137,13 @@ kubectl get services
 ## 📊 Monitoring
 
 ### Prometheus Metrics
+
 - Application metrics: `/metrics`
 - Request counts and latencies
 - Custom business metrics
 
 ### Grafana Dashboards
+
 - Application performance
 - Infrastructure monitoring
 - Custom alerts
@@ -161,17 +167,20 @@ pytest -m "not slow"
 ## 🔒 Security
 
 ### Security Scanning
+
 - **Bandit**: Python security linter
 - **Safety**: Dependency vulnerability scanner
 - **Docker**: Container security scanning
 
 ### Security Headers
+
 - Nginx configuration includes security headers
 - Rate limiting and access controls
 
 ## 🌍 Environment Configuration
 
 ### Development
+
 ```bash
 # Using Docker Compose
 docker-compose up -d
@@ -184,6 +193,7 @@ scripts\deploy.bat development
 ```
 
 ### Staging
+
 ```bash
 # Linux/Mac
 ./scripts/deploy.sh staging
@@ -193,6 +203,7 @@ scripts\deploy.bat staging
 ```
 
 ### Production
+
 ```bash
 # Linux/Mac
 ./scripts/deploy.sh production
@@ -204,6 +215,7 @@ scripts\deploy.bat production
 ## 📝 API Documentation
 
 Once running, visit:
+
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
@@ -211,13 +223,16 @@ Once running, visit:
 ## 🔧 Configuration
 
 ### Environment Variables
+
 - `ENV`: Environment name (development/staging/production)
 - `DEBUG`: Debug mode (true/false)
 - `DATABASE_URL`: Database connection string
 - `REDIS_URL`: Redis connection string
 
 ### Secrets Management
+
 For production deployments:
+
 - Use Kubernetes secrets
 - Azure Key Vault / AWS Secrets Manager
 - HashiCorp Vault
@@ -225,6 +240,7 @@ For production deployments:
 ## 📈 Performance
 
 ### Optimization Features
+
 - Async/await throughout
 - Connection pooling
 - Caching with Redis
@@ -232,6 +248,7 @@ For production deployments:
 - Gzip compression
 
 ### Monitoring
+
 - Prometheus metrics collection
 - Grafana visualization
 - Health check endpoints
@@ -246,6 +263,7 @@ For production deployments:
 5. Submit a pull request
 
 ### Pre-commit Hooks
+
 ```bash
 # Install pre-commit
 pip install pre-commit
