@@ -11,10 +11,10 @@ spec:
       app: cicd-pipeline
       component: api
   endpoints:
-  - port: http
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -25,43 +25,43 @@ metadata:
     app: cicd-pipeline
 spec:
   groups:
-  - name: cicd-pipeline.rules
-    rules:
-    - alert: PipelineHighErrorRate
-      expr: rate(app_requests_total{status=~"5.."}[5m]) > 0.1
-      for: 5m
-      labels:
-        severity: warning
-      annotations:
-        summary: "High error rate in CI/CD Pipeline API"
-        description: "Error rate is above 10% for the last 5 minutes"
-    
-    - alert: PipelineResponseTimeHigh
-      expr: histogram_quantile(0.95, rate(app_request_duration_seconds_bucket[5m])) > 1
-      for: 5m
-      labels:
-        severity: warning
-      annotations:
-        summary: "High response time in CI/CD Pipeline API"
-        description: "95th percentile response time is above 1 second"
-    
-    - alert: PipelineDown
-      expr: up{job="cicd-pipeline"} == 0
-      for: 1m
-      labels:
-        severity: critical
-      annotations:
-        summary: "CI/CD Pipeline API is down"
-        description: "CI/CD Pipeline API has been down for more than 1 minute"
-    
-    - alert: DatabaseConnectionHigh
-      expr: sum(rate(database_connections_active[5m])) > 80
-      for: 5m
-      labels:
-        severity: warning
-      annotations:
-        summary: "High database connection usage"
-        description: "Database connection usage is above 80%"
+    - name: cicd-pipeline.rules
+      rules:
+        - alert: PipelineHighErrorRate
+          expr: rate(app_requests_total{status=~"5.."}[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High error rate in CI/CD Pipeline API"
+            description: "Error rate is above 10% for the last 5 minutes"
+
+        - alert: PipelineResponseTimeHigh
+          expr: histogram_quantile(0.95, rate(app_request_duration_seconds_bucket[5m])) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High response time in CI/CD Pipeline API"
+            description: "95th percentile response time is above 1 second"
+
+        - alert: PipelineDown
+          expr: up{job="cicd-pipeline"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "CI/CD Pipeline API is down"
+            description: "CI/CD Pipeline API has been down for more than 1 minute"
+
+        - alert: DatabaseConnectionHigh
+          expr: sum(rate(database_connections_active[5m])) > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High database connection usage"
+            description: "Database connection usage is above 80%"
 ---
 apiVersion: v1
 kind: ConfigMap
