@@ -120,6 +120,17 @@ async def ml_predict():
         "model_version": "1.0.0"
     }
 
+# Include API routers
+try:
+    from src.api.pipelines import router as pipelines_router
+    from src.api.webhooks import router as webhooks_router
+    
+    app.include_router(pipelines_router)
+    app.include_router(webhooks_router)
+    logger.info("API routers loaded successfully")
+except ImportError as e:
+    logger.warning("Could not load API routers", error=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",

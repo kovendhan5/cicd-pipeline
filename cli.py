@@ -210,5 +210,134 @@ def status():
     click.echo("📊 Service status:")
     subprocess.run(["docker-compose", "ps"])
 
+@cli.command()
+@click.option('--namespace', default='cicd-pipeline', help='Kubernetes namespace')
+@click.option('--image-tag', default='latest', help='Docker image tag')
+def k8s_deploy(namespace, image_tag):
+    """Deploy to Kubernetes"""
+    click.echo(f"☸️ Deploying to Kubernetes namespace: {namespace}")
+    
+    script_name = "k8s-deploy.bat" if os.name == "nt" else "k8s-deploy.sh"
+    script_path = Path("scripts") / script_name
+    
+    if not script_path.exists():
+        click.echo(f"❌ Kubernetes deploy script not found: {script_path}")
+        sys.exit(1)
+    
+    if os.name != "nt":  # Make script executable on Unix-like systems
+        subprocess.run(["chmod", "+x", str(script_path)])
+    
+    result = subprocess.run([str(script_path), namespace, "production", image_tag])
+    
+    if result.returncode == 0:
+        click.echo(f"✅ Kubernetes deployment completed!")
+    else:
+        click.echo(f"❌ Kubernetes deployment failed!")
+        sys.exit(1)
+
+@cli.command()
+def generate_secrets():
+    """Generate secure secrets for deployment"""
+    import secrets
+    import base64
+    
+    click.echo("🔐 Generating secure secrets...")
+    
+    # Generate various secrets
+    secret_key = secrets.token_urlsafe(32)
+    webhook_secret = secrets.token_urlsafe(16)
+    db_password = secrets.token_urlsafe(16)
+    redis_password = secrets.token_urlsafe(16)
+    
+    # Base64 encode for Kubernetes secrets
+    secret_key_b64 = base64.b64encode(secret_key.encode()).decode()
+    webhook_secret_b64 = base64.b64encode(webhook_secret.encode()).decode()
+    db_password_b64 = base64.b64encode(db_password.encode()).decode()
+    redis_password_b64 = base64.b64encode(redis_password.encode()).decode()
+    
+    click.echo("\n📝 Add these to your .env file:")
+    click.echo(f"SECRET_KEY={secret_key}")
+    click.echo(f"WEBHOOK_SECRET={webhook_secret}")
+    click.echo(f"DB_PASSWORD={db_password}")
+    click.echo(f"REDIS_PASSWORD={redis_password}")
+    
+    click.echo("\n☸️ For Kubernetes secrets (base64 encoded):")
+    click.echo(f"SECRET_KEY: {secret_key_b64}")
+    click.echo(f"WEBHOOK_SECRET: {webhook_secret_b64}")
+    click.echo(f"DB_PASSWORD: {db_password_b64}")
+    click.echo(f"REDIS_PASSWORD: {redis_password_b64}")
+
+@cli.command()
+def terraform():
+    """Deploy infrastructure with Terraform"""
+    click.echo("🏗️ Deploying infrastructure with Terraform...")
+    
+    if not Path("terraform").exists():
+        click.echo("❌ Terraform directory not found!")
+        sys.exit(1)
+    
+    # Initialize Terraform
+    result = subprocess.run(["terraform", "init"], cwd="terraform")
+    if result.returncode != 0:
+        click.echo("❌ Terraform init failed!")
+        sys.exit(1)
+    
+    # Plan
+    click.echo("📋 Creating Terraform plan...")
+    result = subprocess.run(["terraform", "plan"], cwd="terraform")
+    if result.returncode != 0:
+        click.echo("❌ Terraform plan failed!")
+        sys.exit(1)
+    
+    # Ask for confirmation
+    if click.confirm("Do you want to apply the Terraform plan?"):
+        result = subprocess.run(["terraform", "apply", "-auto-approve"], cwd="terraform")
+        if result.returncode == 0:
+            click.echo("✅ Infrastructure deployed successfully!")
+        else:
+            click.echo("❌ Terraform apply failed!")
+            sys.exit(1)
+    else:
+        click.echo("❌ Terraform apply cancelled")
+
+@cli.command()
+def webhook_test():
+    """Test webhook endpoints"""
+    import requests
+    import json
+    
+    click.echo("🔗 Testing webhook endpoints...")
+    
+    base_url = "http://localhost:8000"
+    
+    # Test GitHub webhook
+    github_payload = {
+        "ref": "refs/heads/main",
+        "repository": {
+            "name": "test-repo",
+            "clone_url": "https://github.com/test/repo.git",
+            "full_name": "test/repo"
+        },
+        "head_commit": {
+            "id": "abc123def456",
+            "message": "Test commit"
+        }
+    }
+    
+    try:
+        response = requests.post(
+            f"{base_url}/api/v1/webhooks/github",
+            json=github_payload,
+            headers={"X-GitHub-Event": "push"}
+        )
+        
+        if response.status_code == 200:
+            click.echo("✅ GitHub webhook test passed")
+        else:
+            click.echo(f"❌ GitHub webhook test failed: {response.status_code}")
+            
+    except requests.exceptions.ConnectionError:
+        click.echo("❌ Could not connect to API. Make sure the server is running.")
+
 if __name__ == "__main__":
     cli()
