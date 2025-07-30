@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: cicd-pipeline-monitor
+  namespace: cicd-pipeline
+  labels:
+    app: cicd-pipeline
+spec:
+  selector:
+    matchLabels:
+      app: cicd-pipeline
+      component: api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cicd-pipeline-alerts
+  namespace: cicd-pipeline
+  labels:
+    app: cicd-pipeline
+spec:
+  groups:
+  - name: cicd-pipeline.rules
+    rules:
+    - alert: PipelineHighErrorRate
+      expr: rate(app_requests_total{status=~"5.."}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High error rate in CI/CD Pipeline API"
+        description: "Error rate is above 10% for the last 5 minutes"
+    
+    - alert: PipelineResponseTimeHigh
+      expr: histogram_quantile(0.95, rate(app_request_duration_seconds_bucket[5m])) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High response time in CI/CD Pipeline API"
+        description: "95th percentile response time is above 1 second"
+    
+    - alert: PipelineDown
+      expr: up{job="cicd-pipeline"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "CI/CD Pipeline API is down"
+        description: "CI/CD Pipeline API has been down for more than 1 minute"
+    
+    - alert: DatabaseConnectionHigh
+      expr: sum(rate(database_connections_active[5m])) > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High database connection usage"
+        description: "Database connection usage is above 80%"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cicd
+  namespace: cicd-pipeline
+  labels:
+    grafana_dashboard: "1"
+data:
+  cicd-pipeline-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "CI/CD Pipeline Dashboard",
+        "tags": ["cicd", "pipeline"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Pipeline Executions",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(increase(app_requests_total{endpoint=\"/api/v1/pipelines\"}[24h]))",
+                "legendFormat": "Total Pipelines"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(app_requests_total{status=~\"2..\"}[5m])) / sum(rate(app_requests_total[5m])) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Response Times",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(app_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "50th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(app_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "5s"
+      }
+    }
