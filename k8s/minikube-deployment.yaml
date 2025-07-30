@@ -1,0 +1,263 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cicd-pipeline-config
+  namespace: cicd-pipeline
+data:
+  DATABASE_URL: "postgresql://user:password123@postgres-service:5432/cicd_pipeline"
+  REDIS_URL: "redis://:redis123@redis-service:6379/0"
+  ENV: "development"
+  DEBUG: "true"
+  PROMETHEUS_ENABLED: "true"
+  LOG_LEVEL: "INFO"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-pipeline-app
+  namespace: cicd-pipeline
+  labels:
+    app: cicd-pipeline
+    component: api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: cicd-pipeline
+      component: api
+  template:
+    metadata:
+      labels:
+        app: cicd-pipeline
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: api
+        image: cicd-pipeline:latest
+        imagePullPolicy: Never  # Use local image in Minikube
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cicd-pipeline-config
+              key: DATABASE_URL
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: cicd-pipeline-config
+              key: REDIS_URL
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cicd-pipeline-secrets
+              key: SECRET_KEY
+        - name: ENV
+          valueFrom:
+            configMapKeyRef:
+              name: cicd-pipeline-config
+              key: ENV
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: cicd-pipeline-config
+              key: DEBUG
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: artifacts-storage
+          mountPath: /app/artifacts
+      volumes:
+      - name: artifacts-storage
+        emptyDir: {}  # Use emptyDir for Minikube simplicity
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-pipeline-service
+  namespace: cicd-pipeline
+  labels:
+    app: cicd-pipeline
+    component: api
+spec:
+  selector:
+    app: cicd-pipeline
+    component: api
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  type: NodePort  # Use NodePort for easy access in Minikube
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: cicd-pipeline
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "cicd_pipeline"
+        - name: POSTGRES_USER
+          value: "user"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cicd-pipeline-secrets
+              key: DB_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: postgres-storage
+        emptyDir: {}  # Use emptyDir for Minikube
+      - name: init-script
+        configMap:
+          name: postgres-init-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: cicd-pipeline
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: cicd-pipeline
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        args:
+        - redis-server
+        - --requirepass
+        - redis123
+        volumeMounts:
+        - name: redis-storage
+          mountPath: /data
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: redis-storage
+        emptyDir: {}  # Use emptyDir for Minikube
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: cicd-pipeline
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cicd-pipeline-ingress
+  namespace: cicd-pipeline
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: cicd-pipeline.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: cicd-pipeline-service
+            port:
+              number: 80

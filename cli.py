@@ -339,5 +339,62 @@ def webhook_test():
     except requests.exceptions.ConnectionError:
         click.echo("❌ Could not connect to API. Make sure the server is running.")
 
+@cli.command()
+def minikube():
+    """Minikube cluster management"""
+    click.echo("☸️ Minikube Management")
+    
+    script_name = "minikube-manage.bat" if os.name == "nt" else "minikube-manage.sh"
+    script_path = Path("scripts") / script_name
+    
+    if not script_path.exists():
+        click.echo(f"❌ Minikube management script not found: {script_path}")
+        sys.exit(1)
+    
+    if os.name != "nt":  # Make script executable on Unix-like systems
+        subprocess.run(["chmod", "+x", str(script_path)])
+    
+    # Show help by default
+    subprocess.run([str(script_path), "help"])
+
+@cli.command()
+@click.argument('action', type=click.Choice(['setup', 'start', 'stop', 'build', 'deploy', 'url', 'logs', 'clean']))
+@click.option('--replicas', default=2, help='Number of replicas for deployment')
+def minikube_action(action, replicas):
+    """Execute Minikube actions"""
+    script_name = "minikube-manage.bat" if os.name == "nt" else "minikube-manage.sh"
+    script_path = Path("scripts") / script_name
+    
+    if not script_path.exists():
+        if action == "setup":
+            # Run the setup script instead
+            setup_script = "minikube-setup.bat" if os.name == "nt" else "minikube-setup.sh"
+            setup_path = Path("scripts") / setup_script
+            if setup_path.exists():
+                if os.name != "nt":
+                    subprocess.run(["chmod", "+x", str(setup_path)])
+                result = subprocess.run([str(setup_path)])
+                if result.returncode == 0:
+                    click.echo("✅ Minikube setup completed!")
+                else:
+                    click.echo("❌ Minikube setup failed!")
+                    sys.exit(1)
+                return
+        
+        click.echo(f"❌ Minikube script not found: {script_path}")
+        sys.exit(1)
+    
+    if os.name != "nt":
+        subprocess.run(["chmod", "+x", str(script_path)])
+    
+    if action == "scale":
+        result = subprocess.run([str(script_path), "scale", str(replicas)])
+    else:
+        result = subprocess.run([str(script_path), action])
+    
+    if result.returncode != 0:
+        click.echo(f"❌ Minikube {action} failed!")
+        sys.exit(1)
+
 if __name__ == "__main__":
     cli()
