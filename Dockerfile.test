@@ -1,0 +1,21 @@
+# Simple test application for Minikube deployment
+FROM alpine:latest
+
+# Install Python and pip
+RUN apk add --no-cache python3 py3-pip curl
+
+# Set working directory
+WORKDIR /app
+
+# Create a simple Python web server
+RUN echo 'from http.server import HTTPServer, BaseHTTPRequestHandler\nimport json\n\nclass Handler(BaseHTTPRequestHandler):\n    def do_GET(self):\n        if self.path == "/health":\n            self.send_response(200)\n            self.send_header("Content-type", "application/json")\n            self.end_headers()\n            self.wfile.write(json.dumps({"status": "healthy", "service": "cicd-pipeline"}).encode())\n        elif self.path == "/docs" or self.path == "/":\n            self.send_response(200)\n            self.send_header("Content-type", "text/html")\n            self.end_headers()\n            self.wfile.write(b"<h1>CI/CD Pipeline API</h1><p>Service is running!</p><a href=\"/health\">Health Check</a>")\n        else:\n            self.send_response(404)\n            self.end_headers()\n            self.wfile.write(b"Not Found")\n\nif __name__ == "__main__":\n    server = HTTPServer(("0.0.0.0", 8000), Handler)\n    print("Server running on http://0.0.0.0:8000")\n    server.serve_forever()' > app.py
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["python3", "app.py"]
