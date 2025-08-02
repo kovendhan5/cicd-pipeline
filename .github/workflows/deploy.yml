@@ -1,0 +1,121 @@
+name: Advanced Multi-Environment Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+    secrets:
+      KUBECONFIG:
+        required: true
+      SLACK_WEBHOOK:
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.28.0"
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy application
+        run: |
+          # Replace image tag in deployment manifest
+          sed -i "s|IMAGE_TAG|${{ inputs.image_tag }}|g" k8s/deployment.yaml
+
+          # Apply Kubernetes manifests
+          kubectl apply -f k8s/ -n ${{ inputs.environment }}
+
+          # Wait for deployment to complete
+          kubectl rollout status deployment/cicd-pipeline-app -n ${{ inputs.environment }} --timeout=300s
+
+      - name: Run health checks
+        run: |
+          # Wait for service to be ready
+          sleep 30
+
+          # Get service URL
+          SERVICE_URL=$(kubectl get service cicd-pipeline-service -n ${{ inputs.environment }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          # Health check
+          curl -f http://$SERVICE_URL/health || exit 1
+
+          echo "Deployment to ${{ inputs.environment }} successful!"
+
+      - name: Run smoke tests
+        if: inputs.environment != 'production'
+        run: |
+          echo "Running smoke tests for ${{ inputs.environment }}..."
+          # Add environment-specific smoke tests
+
+      - name: Notify success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "✅ Deployment Successful",
+              attachments: [{
+                color: "good",
+                fields: [{
+                  title: "Environment",
+                  value: "${{ inputs.environment }}",
+                  short: true
+                }, {
+                  title: "Image Tag",
+                  value: "${{ inputs.image_tag }}",
+                  short: true
+                }, {
+                  title: "Repository",
+                  value: "${{ github.repository }}",
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Notify failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "❌ Deployment Failed",
+              attachments: [{
+                color: "danger",
+                fields: [{
+                  title: "Environment",
+                  value: "${{ inputs.environment }}",
+                  short: true
+                }, {
+                  title: "Image Tag",
+                  value: "${{ inputs.image_tag }}",
+                  short: true
+                }, {
+                  title: "Repository",
+                  value: "${{ github.repository }}",
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

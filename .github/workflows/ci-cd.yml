@@ -231,3 +231,123 @@ jobs:
           channel: "#deployments"
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
         if: always()
+
+  # Performance and Integration Testing
+  performance-test:
+    runs-on: ubuntu-latest
+    name: Performance Testing
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install load testing tools
+        run: |
+          pip install locust requests
+
+      - name: Run performance tests
+        run: |
+          echo "Running performance tests..."
+          # Example: locust -f tests/performance/locustfile.py --headless -u 10 -r 2 -t 60s --host=http://staging.example.com
+
+      - name: Generate performance report
+        run: |
+          echo "Generating performance report..."
+          # Add performance reporting logic
+
+  # Infrastructure Validation
+  infrastructure-test:
+    runs-on: ubuntu-latest
+    name: Infrastructure Validation
+    needs: [code-quality]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive terraform/
+
+      - name: Terraform Init
+        run: terraform init terraform/
+
+      - name: Terraform Validate
+        run: terraform validate terraform/
+
+      - name: Terraform Plan
+        run: terraform plan terraform/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  # Container Security Scan
+  container-security:
+    runs-on: ubuntu-latest
+    name: Container Security Scan
+    needs: [build-and-push]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "ghcr.io/${{ github.repository }}:latest"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  # Rollback capability
+  rollback:
+    runs-on: ubuntu-latest
+    name: Rollback Production
+    if: failure() && github.ref == 'refs/heads/main'
+    needs: [deploy-production]
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback deployment
+        run: |
+          echo "Rolling back production deployment..."
+          # Add rollback commands here
+          # kubectl rollout undo deployment/myapp -n production
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "🚨 Production Rollback Executed",
+              attachments: [{
+                color: "warning",
+                fields: [{
+                  title: "Repository",
+                  value: "${{ github.repository }}",
+                  short: true
+                }, {
+                  title: "Commit",
+                  value: "${{ github.sha }}",
+                  short: true
+                }]
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
