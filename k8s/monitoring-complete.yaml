@@ -6,7 +6,7 @@ kind: Namespace
 metadata:
   name: monitoring
 ---
-# Prometheus ConfigMap
+# Prometheus ConfigMap  
 apiVersion: v1
 kind: ConfigMap
 metadata:
