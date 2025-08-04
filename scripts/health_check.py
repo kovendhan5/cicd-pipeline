@@ -27,6 +27,7 @@ async def check_health() -> Dict[str, Any]:
             "error": str(e)
         }
 
+
 async def main():
     """Main health check function"""
     result = await check_health()
