@@ -13,6 +13,7 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
+
 echo.
 echo 🔍 Checking available memory...
 for /f "tokens=2" %%i in ('docker info 2^>nul ^| findstr "Total Memory"') do set DOCKER_MEMORY=%%i
