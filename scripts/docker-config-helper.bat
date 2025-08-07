@@ -15,10 +15,31 @@ if %ERRORLEVEL% neq 0 (
 
 
 echo.
-echo 🔍 Checking available memory...
-for /f "tokens=2" %%i in ('docker info 2^>nul ^| findstr "Total Memory"') do set DOCKER_MEMORY=%%i
+echo 🔍 Checking Docker configuration...
+for /f "tokens=3" %%i in ('docker info 2^>nul ^| findstr "Total Memory"') do set DOCKER_MEMORY=%%i
+for /f "tokens=2" %%i in ('docker info 2^>nul ^| findstr "CPUs"') do set DOCKER_CPUS=%%i
+for /f "tokens=3" %%i in ('docker info 2^>nul ^| findstr "Server Version"') do set DOCKER_VERSION=%%i
 
-echo Docker Memory Available: %DOCKER_MEMORY%
+echo Docker Version: %DOCKER_VERSION%
+echo Docker CPUs: %DOCKER_CPUS%
+echo Docker Memory: %DOCKER_MEMORY%
+
+echo.
+echo 📋 System Resources Analysis:
+wmic computersystem get TotalPhysicalMemory /format:value | findstr "=" > temp_mem.txt
+for /f "tokens=2 delims==" %%i in (temp_mem.txt) do set TOTAL_RAM=%%i
+del temp_mem.txt
+
+set /a TOTAL_RAM_GB=%TOTAL_RAM:~0,-9%
+echo System Total RAM: %TOTAL_RAM_GB%GB
+
+if %TOTAL_RAM_GB% LSS 8 (
+    echo ⚠️  WARNING: System has less than 8GB RAM - consider upgrading
+) else if %TOTAL_RAM_GB% LSS 16 (
+    echo ✅ System RAM adequate for development
+) else (
+    echo 🚀 Excellent system resources for development
+)
 echo.
 
 echo 💡 Recommendations for Minikube:
