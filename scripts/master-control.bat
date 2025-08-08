@@ -25,10 +25,12 @@ echo 6️⃣  🏗️  Build ^& Deploy - Build and deploy application
 echo 7️⃣  📊 Status Check - Check current environment status
 echo 8️⃣  🔍 Troubleshoot - Diagnostic and troubleshooting tools
 echo 9️⃣  📚 Documentation - Open guides and documentation
+echo 🔟  🎯 Deployment Readiness - Check production readiness
+echo 🅰️  📋 Generate Report - Create project completion report
 echo 0️⃣  ❌ Exit
 echo.
 
-set /p choice="Enter your choice (0-9): "
+set /p choice="Enter your choice (0-9, A): "
 
 if "%choice%"=="1" goto DIAGNOSTICS
 if "%choice%"=="2" goto AUTO_SETUP
