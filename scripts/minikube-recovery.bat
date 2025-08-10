@@ -10,7 +10,7 @@ minikube stop >nul 2>&1
 
 echo 🗑️ Deleting existing cluster...
 minikube delete >nul 2>&1
-
+ 
 echo ⏳ Waiting for cleanup...
 timeout /t 3 /nobreak >nul
 

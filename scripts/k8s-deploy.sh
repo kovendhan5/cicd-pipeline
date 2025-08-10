@@ -7,6 +7,7 @@ NAMESPACE=${1:-cicd-pipeline}
 ENVIRONMENT=${2:-production}
 IMAGE_TAG=${3:-latest}
 
+
 echo "🚀 Deploying CI/CD Pipeline to Kubernetes"
 echo "Namespace: $NAMESPACE"
 echo "Environment: $ENVIRONMENT"
