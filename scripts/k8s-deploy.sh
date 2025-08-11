@@ -13,6 +13,8 @@ echo "Namespace: $NAMESPACE"
 echo "Environment: $ENVIRONMENT"
 echo "Image Tag: $IMAGE_TAG"
 
+
+#hi
 # Check if kubectl is available
 if ! command -v kubectl &> /dev/null; then
     echo "❌ kubectl is not installed or not in PATH"
