@@ -63,6 +63,8 @@ kubectl create configmap postgres-init-script \
     --namespace=$NAMESPACE \
     --dry-run=client -o yaml | kubectl apply -f -
 
+    
+
 # Apply the complete deployment
 echo "🛠️ Applying Kubernetes manifests..."
 kubectl apply -f k8s/complete-deployment.yaml
