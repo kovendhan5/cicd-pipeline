@@ -8,6 +8,8 @@ echo.
 set /p confirm="Do you want to proceed? This will delete your current cluster (y/n): "
 if /i not "%confirm%"=="y" exit /b 0
 
+
+
 echo.
 echo 1️⃣ Deleting existing cluster completely...
 minikube delete --all --purge

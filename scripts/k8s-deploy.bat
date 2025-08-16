@@ -10,6 +10,8 @@ if "%ENVIRONMENT%"=="" set ENVIRONMENT=production
 set IMAGE_TAG=%3
 if "%IMAGE_TAG%"=="" set IMAGE_TAG=latest
 
+
+
 echo 🚀 Deploying CI/CD Pipeline to Kubernetes
 echo Namespace: %NAMESPACE%
 echo Environment: %ENVIRONMENT%
