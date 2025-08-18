@@ -1,64 +1,14 @@
-name: Advanced CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop, feature/      - name: Type checking (mypy)
-        run: mypy src/ --ignore-missing-imports
-
-      - name: Security linting (bandit)
-        run: bandit -r src/ -f json -o bandit-report.json || true
-
-      - name: Generate code quality report
-        run: |
-          echo "## Code Quality Report" > code-quality-report.md
-          echo "- Black formatting: $(black --check . && echo '✅ Pass' || echo '❌ Fail')" >> code-quality-report.md
-          echo "- Import sorting: $(isort --check-only . && echo '✅ Pass' || echo '❌ Fail')" >> code-quality-report.md
-          echo "- Linting: $(flake8 . && echo '✅ Pass' || echo '❌ Fail')" >> code-quality-report.md
-          echo "- Type checking: $(mypy src/ --ignore-missing-imports && echo '✅ Pass' || echo '❌ Fail')" >> code-quality-report.md
-
-      - name: Upload code quality artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-quality-reports
-          path: |
-            bandit-report.json
-            code-quality-report.md hotfix/*]
-    tags: ['v*']
-  pull_request:
     branches: [main, develop]
-  schedule:
-    - cron: '0 2 * * 1' # Weekly dependency audit on Mondays at 2 AM
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-        - staging
-        - production
-      skip_tests:
-        description: 'Skip tests'
-        required: false
-        default: false
-        type: boolean
-      deployment_strategy:
-        description: 'Deployment strategy'
-        required: false
-        default: 'rolling'
-        type: choice
-        options:
-        - rolling
-        - blue-green
-        - canary
+  pull_request:
+    branches: [main]
 
 env:
-  PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  COSIGN_VERSION: "2.2.0"
+  PYTHON_VERSION: "3.9"
+  NODE_VERSION: "18"
 
 jobs:
   # Continuous Integration Jobs

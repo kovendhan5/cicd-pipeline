@@ -1,0 +1,30 @@
+apiVersion: v2
+name: cicd-pipeline
+description: A Helm chart for Enterprise CI/CD Pipeline
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - cicd
+  - fastapi
+  - kubernetes
+  - devops
+home: https://github.com/kovendhan5/cicd-pipeline
+sources:
+  - https://github.com/kovendhan5/cicd-pipeline
+maintainers:
+  - name: kovendhan5
+    email: kovendhan5@example.com
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: prometheus
+    version: 15.x.x
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheus.enabled
