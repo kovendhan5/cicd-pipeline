@@ -1,0 +1,179 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CI/CD Pipeline - Deployment Analytics",
+    "tags": ["cicd", "deployment", "gitops"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Deployment Frequency",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(github_actions_workflow_runs_total{workflow=\"Deploy\"}[24h])",
+            "legendFormat": "Deployments/Day"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 3}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Lead Time for Changes",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(github_actions_workflow_run_duration_seconds{workflow=\"Deploy\"})",
+            "legendFormat": "Avg Deploy Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 600},
+                {"color": "red", "value": 1800}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Change Failure Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(github_actions_workflow_runs_total{workflow=\"Deploy\", conclusion=\"failure\"}[7d]) / rate(github_actions_workflow_runs_total{workflow=\"Deploy\"}[7d]) * 100",
+            "legendFormat": "Failure Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 15}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Mean Time to Recovery",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(argocd_app_health_status == 0) * 60",
+            "legendFormat": "MTTR (minutes)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "m",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 30},
+                {"color": "red", "value": 120}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Deployment Timeline",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(github_actions_workflow_runs_total{workflow=\"Deploy\"}[1h])",
+            "legendFormat": "{{conclusion}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "ArgoCD Application Status",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "argocd_app_health_status",
+            "legendFormat": "{{name}} - {{health_status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "CI/CD Pipeline Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "github_actions_workflow_run_duration_seconds{workflow=\"CI\"}",
+            "legendFormat": "CI Duration"
+          },
+          {
+            "expr": "github_actions_workflow_run_duration_seconds{workflow=\"Deploy\"}",
+            "legendFormat": "Deploy Duration"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Test Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(github_actions_workflow_runs_total{workflow=\"CI\", conclusion=\"success\"}[1h]) / rate(github_actions_workflow_runs_total{workflow=\"CI\"}[1h]) * 100",
+            "legendFormat": "Test Success Rate %"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16}
+      },
+      {
+        "id": 9,
+        "title": "Rollback Frequency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(argocd_app_sync_total{operation=\"rollback\"}[24h])",
+            "legendFormat": "{{name}} Rollbacks"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16}
+      }
+    ],
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "refresh": "5m"
+  }
+}
