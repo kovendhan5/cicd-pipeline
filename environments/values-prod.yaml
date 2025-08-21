@@ -1,0 +1,367 @@
+# Production Environment Values
+# High-availability, secure, and scalable production deployment
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/kovendhan5/cicd-pipeline
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-burst-multiplier: "5"
+    nginx.ingress.kubernetes.io/limit-connections: "20"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  hosts:
+    - host: cicd-pipeline.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: cicd-pipeline-prod-tls
+      hosts:
+        - cicd-pipeline.example.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 4
+        periodSeconds: 60
+
+# Production storage with high performance
+persistence:
+  enabled: true
+  size: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClass: "premium-ssd"
+  mountPath: "/app/data"
+
+# Production database with high availability
+postgresql:
+  enabled: true
+  auth:
+    username: prod_user
+    database: cicd_production
+    existingSecret: postgresql-prod-secret
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "premium-ssd"
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+    configuration:
+      max_connections: 200
+      shared_buffers: 256MB
+      effective_cache_size: 1GB
+      maintenance_work_mem: 64MB
+      checkpoint_completion_target: 0.9
+      wal_buffers: 16MB
+      default_statistics_target: 100
+      random_page_cost: 1.1
+      effective_io_concurrency: 200
+  readReplicas:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "premium-ssd"
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+# Production Redis with clustering
+redis:
+  enabled: true
+  architecture: replication
+  auth:
+    enabled: true
+    existingSecret: redis-prod-secret
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "premium-ssd"
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "premium-ssd"
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+# Production monitoring with full observability
+monitoring:
+  enabled: true
+  port: 9090
+  path: /metrics
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    labels:
+      environment: production
+      tier: critical
+    relabelings:
+      - sourceLabels: [__meta_kubernetes_pod_name]
+        targetLabel: instance
+    metricRelabelings:
+      - sourceLabels: [__name__]
+        regex: 'go_.*'
+        action: drop
+
+# Production configuration
+config:
+  logLevel: "INFO"
+  debug: false
+  additional:
+    ENV: "production"
+    PERFORMANCE_MONITORING: "true"
+    CACHE_ENABLED: "true"
+    RATE_LIMITING: "true"
+    SECURITY_HEADERS: "true"
+    AUDIT_LOGGING: "true"
+
+secrets:
+  databaseUrl: "postgresql://prod_user:prod_password@cicd-pipeline-postgresql:5432/cicd_production"
+  redisUrl: "redis://:prod_redis_password@cicd-pipeline-redis:6379/0"
+  additional:
+    SECRET_KEY: "production-secret-key-super-secure"
+    JWT_SECRET: "jwt-secret-for-production"
+    ENCRYPTION_KEY: "encryption-key-for-sensitive-data"
+
+# Strict health checks for production
+health:
+  liveness:
+    path: /health
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    path: /ready
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+# Production security - network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: prometheus
+  egress:
+    database:
+      - namespaceSelector:
+          matchLabels:
+            name: cicd-production
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: postgresql
+    redis:
+      - namespaceSelector:
+          matchLabels:
+            name: cicd-production
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+
+# Pod disruption budget for high availability
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Service account with production permissions
+serviceAccount:
+  create: true
+  automount: true
+  annotations:
+    environment: production
+    compliance: required
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["configmaps", "secrets"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["events"]
+      verbs: ["create"]
+
+# Strict pod security for production
+podSecurityContext:
+  fsGroup: 2000
+  fsGroupChangePolicy: "OnRootMismatch"
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+# Production node scheduling and affinity
+nodeSelector:
+  kubernetes.io/arch: amd64
+  node-type: production
+
+tolerations:
+  - key: "production-only"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: environment
+          operator: In
+          values:
+          - production
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: instance-type
+          operator: In
+          values:
+          - high-performance
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - cicd-pipeline
+      topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - cicd-pipeline
+        topologyKey: topology.kubernetes.io/zone
+
+# Production environment variables
+env:
+  ENVIRONMENT: "production"
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+  CACHE_TTL: "600"
+  MAX_WORKERS: "8"
+  CONNECTION_POOL_SIZE: "20"
+  RATE_LIMIT_REQUESTS: "1000"
+  RATE_LIMIT_WINDOW: "3600"
+  SECURITY_LEVEL: "high"
+  AUDIT_ENABLED: "true"
+
+# Pod annotations for production monitoring
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+  co.elastic.logs/enabled: "true"
+  co.elastic.logs/json.keys_under_root: "true"
+  co.elastic.logs/json.add_error_key: "true"

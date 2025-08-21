@@ -1,0 +1,170 @@
+# Minikube-specific Values
+# Optimized for local Minikube development and testing
+
+replicaCount: 1
+
+image:
+  repository: cicd-pipeline
+  pullPolicy: Never  # Use local images in Minikube
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: cicd-pipeline.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+# Minikube storage - use emptyDir for simplicity
+persistence:
+  enabled: false
+
+# Minikube database with minimal resources
+postgresql:
+  enabled: true
+  auth:
+    username: minikube_user
+    database: cicd_minikube
+    password: minikube123
+  primary:
+    persistence:
+      enabled: false  # Use emptyDir for Minikube
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    initdb:
+      scripts:
+        init.sql: |
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          CREATE TABLE IF NOT EXISTS pipelines (
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            name VARCHAR(255) NOT NULL,
+            status VARCHAR(50) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+
+# Minikube Redis with no persistence
+redis:
+  enabled: true
+  auth:
+    enabled: false  # Disable auth for simplicity
+  master:
+    persistence:
+      enabled: false  # Use emptyDir for Minikube
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Disable monitoring for Minikube to save resources
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Minikube configuration
+config:
+  logLevel: "DEBUG"
+  debug: true
+  additional:
+    ENV: "minikube"
+    TESTING: "true"
+    MINIKUBE_MODE: "true"
+
+secrets:
+  databaseUrl: "postgresql://minikube_user:minikube123@cicd-pipeline-postgresql:5432/cicd_minikube"
+  redisUrl: "redis://cicd-pipeline-redis:6379/0"
+  additional:
+    SECRET_KEY: "minikube-dev-secret-not-secure"
+
+# Relaxed health checks for Minikube
+health:
+  liveness:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 5
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Disable security features for Minikube simplicity
+networkPolicy:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+# Minimal security for Minikube
+podSecurityContext:
+  runAsNonRoot: false
+
+securityContext:
+  readOnlyRootFilesystem: false
+
+# No specific node requirements for Minikube
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Minikube environment variables
+env:
+  ENVIRONMENT: "minikube"
+  DEBUG_MODE: "true"
+  LOG_REQUESTS: "true"
+  ENABLE_CORS: "true"
+  MINIKUBE_IP: "192.168.49.2"
+
+# Additional Minikube-specific configurations
+podAnnotations:
+  minikube.local/test: "true"
+
+# Minikube volume mounts for development
+volumeMounts:
+  - name: minikube-data
+    mountPath: /app/data
+
+volumes:
+  - name: minikube-data
+    emptyDir: {}
+
+# Additional services for Minikube testing
+additionalServices:
+  - name: debug-service
+    type: NodePort
+    port: 8080
+    nodePort: 30081
+    selector:
+      app: debug-tools

@@ -1,0 +1,236 @@
+# Staging Environment Values
+# Pre-production testing environment
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/kovendhan5/cicd-pipeline
+  pullPolicy: Always
+  tag: "staging"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "50"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  hosts:
+    - host: cicd-pipeline-staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: cicd-pipeline-staging-tls
+      hosts:
+        - cicd-pipeline-staging.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+
+# Staging storage
+persistence:
+  enabled: true
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClass: "fast-ssd"
+
+# Staging database
+postgresql:
+  enabled: true
+  auth:
+    username: staging_user
+    database: cicd_staging
+    existingSecret: postgresql-staging-secret
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "fast-ssd"
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+# Staging Redis
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: redis-staging-secret
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: "fast-ssd"
+    resources:
+      limits:
+        cpu: 250m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# Staging monitoring
+monitoring:
+  enabled: true
+  port: 9090
+  path: /metrics
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      environment: staging
+
+# Staging configuration
+config:
+  logLevel: "INFO"
+  debug: false
+  additional:
+    ENV: "staging"
+    PERFORMANCE_MONITORING: "true"
+    CACHE_ENABLED: "true"
+
+secrets:
+  databaseUrl: "postgresql://staging_user:staging_password@cicd-pipeline-postgresql:5432/cicd_staging"
+  redisUrl: "redis://:staging_redis_password@cicd-pipeline-redis:6379/0"
+  additional:
+    SECRET_KEY: "staging-secret-key-different-from-prod"
+
+# Health checks
+health:
+  liveness:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Security for staging
+networkPolicy:
+  enabled: true
+  ingress:
+    from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - namespaceSelector:
+          matchLabels:
+            name: monitoring
+  egress:
+    database:
+      - namespaceSelector:
+          matchLabels:
+            name: cicd-staging
+    redis:
+      - namespaceSelector:
+          matchLabels:
+            name: cicd-staging
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Service account and RBAC
+serviceAccount:
+  create: true
+  automount: true
+  annotations:
+    environment: staging
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["configmaps", "secrets"]
+      verbs: ["get", "list", "watch"]
+
+# Pod security
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Node affinity for staging
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
+        - key: environment
+          operator: In
+          values:
+          - staging
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - cicd-pipeline
+        topologyKey: kubernetes.io/hostname
+
+# Environment variables
+env:
+  ENVIRONMENT: "staging"
+  ENABLE_METRICS: "true"
+  CACHE_TTL: "300"
+  MAX_WORKERS: "4"

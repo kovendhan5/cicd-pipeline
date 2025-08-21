@@ -1,0 +1,126 @@
+# Development Environment Values
+# Optimized for local development and testing
+
+replicaCount: 1
+
+image:
+  repository: cicd-pipeline
+  pullPolicy: Never  # Use local images in development
+  tag: "dev"
+
+imagePullSecrets: []
+
+service:
+  type: NodePort
+  port: 80
+  nodePort: 30080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: cicd-pipeline-dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+# Simplified storage for development
+persistence:
+  enabled: false
+
+# Development database configuration
+postgresql:
+  enabled: true
+  auth:
+    username: dev_user
+    database: cicd_dev
+    password: dev_password
+  primary:
+    persistence:
+      enabled: false  # Use emptyDir for development
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Development Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false  # Disable auth for development
+  master:
+    persistence:
+      enabled: false  # Use emptyDir for development
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Development monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+# Development configuration
+config:
+  logLevel: "DEBUG"
+  debug: true
+  additional:
+    ENV: "development"
+    TESTING: "true"
+
+secrets:
+  databaseUrl: "postgresql://dev_user:dev_password@cicd-pipeline-postgresql:5432/cicd_dev"
+  redisUrl: "redis://cicd-pipeline-redis:6379/0"
+  additional:
+    SECRET_KEY: "dev-secret-key-not-for-production"
+
+# Health checks with relaxed timeouts
+health:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 5
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Disable security features for development
+networkPolicy:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+# Development environment variables
+env:
+  ENVIRONMENT: "development"
+  DEBUG_MODE: "true"
+  LOG_REQUESTS: "true"
+  ENABLE_CORS: "true"
