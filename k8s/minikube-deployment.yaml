@@ -41,67 +41,67 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: api
-        image: cicd-pipeline:latest
-        imagePullPolicy: Never  # Use local image in Minikube
-        ports:
-        - containerPort: 8000
-          name: http
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: cicd-pipeline-config
-              key: DATABASE_URL
-        - name: REDIS_URL
-          valueFrom:
-            configMapKeyRef:
-              name: cicd-pipeline-config
-              key: REDIS_URL
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: cicd-pipeline-secrets
-              key: SECRET_KEY
-        - name: ENV
-          valueFrom:
-            configMapKeyRef:
-              name: cicd-pipeline-config
-              key: ENV
-        - name: DEBUG
-          valueFrom:
-            configMapKeyRef:
-              name: cicd-pipeline-config
-              key: DEBUG
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "200m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
-        volumeMounts:
-        - name: artifacts-storage
-          mountPath: /app/artifacts
+        - name: api
+          image: cicd-pipeline:latest
+          imagePullPolicy: Never # Use local image in Minikube
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cicd-pipeline-config
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cicd-pipeline-config
+                  key: REDIS_URL
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cicd-pipeline-secrets
+                  key: SECRET_KEY
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: cicd-pipeline-config
+                  key: ENV
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: cicd-pipeline-config
+                  key: DEBUG
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: artifacts-storage
+              mountPath: /app/artifacts
       volumes:
-      - name: artifacts-storage
-        emptyDir: {}  # Use emptyDir for Minikube simplicity
+        - name: artifacts-storage
+          emptyDir: {} # Use emptyDir for Minikube simplicity
 ---
 apiVersion: v1
 kind: Service
@@ -116,11 +116,11 @@ spec:
     app: cicd-pipeline
     component: api
   ports:
-  - port: 80
-    targetPort: 8000
-    protocol: TCP
-    name: http
-  type: NodePort  # Use NodePort for easy access in Minikube
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  type: NodePort # Use NodePort for easy access in Minikube
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -140,40 +140,40 @@ spec:
         app: postgres
     spec:
       containers:
-      - name: postgres
-        image: postgres:15-alpine
-        ports:
-        - containerPort: 5432
-        env:
-        - name: POSTGRES_DB
-          value: "cicd_pipeline"
-        - name: POSTGRES_USER
-          value: "user"
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cicd-pipeline-secrets
-              key: DB_PASSWORD
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
-        - name: init-script
-          mountPath: /docker-entrypoint-initdb.d
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "200m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "cicd_pipeline"
+            - name: POSTGRES_USER
+              value: "user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cicd-pipeline-secrets
+                  key: DB_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
       volumes:
-      - name: postgres-storage
-        emptyDir: {}  # Use emptyDir for Minikube
-      - name: init-script
-        configMap:
-          name: postgres-init-script
+        - name: postgres-storage
+          emptyDir: {} # Use emptyDir for Minikube
+        - name: init-script
+          configMap:
+            name: postgres-init-script
 ---
 apiVersion: v1
 kind: Service
@@ -184,8 +184,8 @@ spec:
   selector:
     app: postgres
   ports:
-  - port: 5432
-    targetPort: 5432
+    - port: 5432
+      targetPort: 5432
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -206,27 +206,27 @@ spec:
         app: redis
     spec:
       containers:
-      - name: redis
-        image: redis:7-alpine
-        ports:
-        - containerPort: 6379
-        args:
-        - redis-server
-        - --requirepass
-        - redis123
-        volumeMounts:
-        - name: redis-storage
-          mountPath: /data
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "256Mi"
-            cpu: "200m"
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          args:
+            - redis-server
+            - --requirepass
+            - redis123
+          volumeMounts:
+            - name: redis-storage
+              mountPath: /data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
       volumes:
-      - name: redis-storage
-        emptyDir: {}  # Use emptyDir for Minikube
+        - name: redis-storage
+          emptyDir: {} # Use emptyDir for Minikube
 ---
 apiVersion: v1
 kind: Service
@@ -237,8 +237,8 @@ spec:
   selector:
     app: redis
   ports:
-  - port: 6379
-    targetPort: 6379
+    - port: 6379
+      targetPort: 6379
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
@@ -251,15 +251,13 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: cicd-pipeline.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: cicd-pipeline-service
-            port:
-              number: 80
-
-
+    - host: cicd-pipeline.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cicd-pipeline-service
+                port:
+                  number: 80
