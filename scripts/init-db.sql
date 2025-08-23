@@ -144,3 +144,6 @@ ON CONFLICT (username) DO NOTHING;
 INSERT INTO repositories (name, url, owner_id) VALUES
     ('cicd-pipeline', 'https://github.com/kovendhan5/cicd-pipeline.git', (SELECT id FROM users WHERE username = 'admin'))
 ON CONFLICT DO NOTHING;
+
+
+
