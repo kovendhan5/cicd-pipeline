@@ -5,7 +5,6 @@ set -e
 
 echo "🚀 Setting up Minikube for CI/CD Pipeline"
 
-# Check if minikube is installed
 if ! command -v minikube &> /dev/null; then
     echo "❌ Minikube is not installed. Please install it first:"
     echo "   https://minikube.sigs.k8s.io/docs/start/"

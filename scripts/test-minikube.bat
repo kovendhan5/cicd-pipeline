@@ -86,3 +86,4 @@ echo   3. Access application: scripts\minikube-manage.bat url
 echo   4. View dashboard: scripts\minikube-manage.bat dashboard
 
 pause
+
