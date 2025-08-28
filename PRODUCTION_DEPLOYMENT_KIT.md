@@ -9,6 +9,7 @@ This deployment kit provides everything needed to deploy the enterprise CI/CD pi
 ### AWS EKS Deployment
 
 #### 1. Terraform Infrastructure
+
 ```bash
 # Navigate to terraform directory
 cd terraform/
@@ -27,6 +28,7 @@ aws eks update-kubeconfig --region us-west-2 --name cicd-pipeline-eks
 ```
 
 #### 2. Install Required Components
+
 ```bash
 # Install nginx-ingress controller
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -132,9 +134,9 @@ spec:
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
-    - http01:
-        ingress:
-          class: nginx
+      - http01:
+          ingress:
+            class: nginx
 ```
 
 ```bash
@@ -196,34 +198,34 @@ metadata:
   namespace: cicd-production
 spec:
   groups:
-  - name: cicd-pipeline.rules
-    rules:
-    - alert: PipelineHighErrorRate
-      expr: rate(fastapi_requests_total{status=~"5.."}[5m]) > 0.05
-      for: 2m
-      labels:
-        severity: critical
-      annotations:
-        summary: "High error rate in CI/CD Pipeline"
-        description: "Error rate is {{ $value | humanizePercentage }}"
-    
-    - alert: PipelineHighResponseTime
-      expr: histogram_quantile(0.95, rate(fastapi_request_duration_seconds_bucket[5m])) > 2
-      for: 5m
-      labels:
-        severity: warning
-      annotations:
-        summary: "High response time"
-        description: "95th percentile response time is {{ $value }}s"
-    
-    - alert: PipelineDown
-      expr: up{job="cicd-pipeline"} == 0
-      for: 1m
-      labels:
-        severity: critical
-      annotations:
-        summary: "CI/CD Pipeline is down"
-        description: "Pipeline has been down for more than 1 minute"
+    - name: cicd-pipeline.rules
+      rules:
+        - alert: PipelineHighErrorRate
+          expr: rate(fastapi_requests_total{status=~"5.."}[5m]) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate in CI/CD Pipeline"
+            description: "Error rate is {{ $value | humanizePercentage }}"
+
+        - alert: PipelineHighResponseTime
+          expr: histogram_quantile(0.95, rate(fastapi_request_duration_seconds_bucket[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High response time"
+            description: "95th percentile response time is {{ $value }}s"
+
+        - alert: PipelineDown
+          expr: up{job="cicd-pipeline"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "CI/CD Pipeline is down"
+            description: "Pipeline has been down for more than 1 minute"
 ```
 
 ### 3. Configure Slack Notifications
@@ -240,14 +242,14 @@ stringData:
   alertmanager.yml: |
     global:
       slack_api_url: 'YOUR_SLACK_WEBHOOK_URL'
-    
+
     route:
       group_by: ['alertname']
       group_wait: 10s
       group_interval: 10s
       repeat_interval: 1h
       receiver: 'web.hook'
-    
+
     receivers:
     - name: 'web.hook'
       slack_configs:
@@ -415,6 +417,7 @@ kubectl delete secret cicd-pipeline-prod-tls -n cicd-production
 ## 📋 Production Checklist
 
 ### Pre-Deployment
+
 - [ ] Infrastructure provisioned (EKS, RDS, Redis)
 - [ ] DNS configured
 - [ ] TLS certificates configured
@@ -424,6 +427,7 @@ kubectl delete secret cicd-pipeline-prod-tls -n cicd-production
 - [ ] Alerts configured
 
 ### Post-Deployment
+
 - [ ] Health checks passing
 - [ ] Monitoring dashboards accessible
 - [ ] Alerts functioning
@@ -433,6 +437,7 @@ kubectl delete secret cicd-pipeline-prod-tls -n cicd-production
 - [ ] Documentation updated
 
 ### Ongoing Operations
+
 - [ ] Regular security updates
 - [ ] Performance monitoring
 - [ ] Capacity planning
@@ -444,6 +449,7 @@ kubectl delete secret cicd-pipeline-prod-tls -n cicd-production
 ## 🎯 Support & Maintenance
 
 For ongoing support:
+
 1. Monitor Grafana dashboards
 2. Check AlertManager for alerts
 3. Review application logs regularly
