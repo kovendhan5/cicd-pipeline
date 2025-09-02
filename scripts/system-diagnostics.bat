@@ -217,7 +217,6 @@ echo    - Install Python dependencies: pip install -r requirements.txt
 
 echo.
 echo 5. 🧪 Test Setup:
-echo    - Run: python scripts\check-environment.py
 echo    - Run: python cli.py check-env
 echo    - Run: docker-compose up --build
 echo    - Run: scripts\test-minikube.bat
