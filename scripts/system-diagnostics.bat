@@ -7,38 +7,7 @@ echo.
 
 REM Check if running as administrator
 net session >nul 2>&1
-if %echo 📞 Need Help?
-echo =============
-echo - Review: QUICK_SETUP_GUIDE.md
-echo - Project Status: PROJECT_FINAL_SUMMARY.md
-echo - Deployment Guide: PRODUCTION_DEPLOYMENT_KIT.md
-echo - Complete Checklist: DEPLOYMENT_CHECKLIST.md
-echo - Helm Guide: HELM_DEPLOYMENT_GUIDE.md
-echo - Troubleshooting: scripts\minikube-manage.bat troubleshoot
-
-echo.
-echo 🏆 Advanced Features Available:
-echo ===============================
-echo - GitOps with ArgoCD
-echo - Multi-environment Helm deployments
-echo - Custom Grafana monitoring dashboards
-echo - Automated backup and rollback procedures
-echo - Cross-platform deployment scripts
-echo - Security scanning and compliance checks
-
-echo.
-echo 🎯 Quick Commands:
-echo ==================
-echo For immediate testing:
-echo   scripts\validate-complete-pipeline.bat
-echo.
-echo For production deployment:
-echo   scripts\deploy-production.bat --help
-echo.
-echo For development environment:
-echo   docker-compose up --build
-echo   minikube start
-echo   scripts\test-minikube.batEVEL% neq 0 (
+if %ERRORLEVEL% neq 0 (
     echo ⚠️  WARNING: Not running as administrator
     echo Some operations may require elevated privileges
     echo.
@@ -253,21 +222,9 @@ echo    - Run: docker-compose up --build
 echo    - Run: scripts\test-minikube.bat
 
 echo.
-echo 6. 📊 Performance Testing:
-echo    - Run: scripts\validate-complete-pipeline.bat
-echo    - Load test: k6 run tests\load-test.js
-echo    - Monitor: kubectl top pods --all-namespaces
-
-echo.
-echo 7. 🚀 Production Deployment:
-echo    - Run: scripts\deploy-production.bat --dry-run
-echo    - Deploy: scripts\deploy-production.bat --namespace production
-echo    - Monitor: kubectl get pods -n production -w
-
-echo.
 echo 📞 Need Help?
 echo =============
-echoo - Review: PROJECT_STATUS.md
+echo - Review: PROJECT_STATUS.md
 echo - Deployment Guide: DEPLOYMENT_GUIDE.md
 echo - Security Config: SECURITY_CONFIG.md
 echo - Troubleshooting: scripts\minikube-manage.bat troubleshoot
