@@ -2,7 +2,7 @@
 REM Automated Environment Setup and Validation
 
 echo 🚀 CI/CD Pipeline Environment Setup
-echo ====================================
+echo =====================================
 echo.
 
 REM Create logs directory if it doesn't exist

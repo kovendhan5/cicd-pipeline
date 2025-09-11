@@ -232,3 +232,5 @@ echo - Troubleshooting: scripts\minikube-manage.bat troubleshoot
 echo.
 echo Press any key to continue...
 pause >nul
+
+
