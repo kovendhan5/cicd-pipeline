@@ -21,11 +21,14 @@ echo 🔍 Step 1: Environment Validation
 echo =================================
 
 REM Check if we're in the right directory
-if not exist "src\main.py" (
-    echo ❌ Error: Not in the correct project directory
-    echo Please run this script from the cicd-pipeline root directory
-    pause
-    exit /b 1
+if not exist "app\main.py" (
+    if not exist "src\main.py" (
+        echo ❌ Error: Not in the correct project directory
+        echo Please run this script from the cicd-pipeline root directory
+        echo Expected to find either app\main.py or src\main.py
+        pause
+        exit /b 1
+    )
 )
 
 echo ✅ Confirmed: In correct project directory >> %logfile%
@@ -157,6 +160,16 @@ if %ERRORLEVEL% neq 0 (
 ) else (
     echo ✅ kubectl is available
     echo kubectl confirmed >> %logfile%
+    
+    REM Check Helm
+    helm version >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ⚠️  Helm not found - Helm deployments unavailable
+        echo Helm not found >> %logfile%
+    ) else (
+        echo ✅ Helm is available
+        echo Helm confirmed >> %logfile%
+    )
     
     REM Check Minikube
     minikube version >nul 2>&1
