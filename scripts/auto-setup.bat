@@ -198,17 +198,22 @@ echo 🧪 Step 5: Environment Testing
 echo ===============================
 
 echo 🔍 Testing CLI tool...
-python cli.py check-env >> %logfile% 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo ❌ CLI tool test failed
-    echo CLI tool test failed >> %logfile%
+if exist "cli.py" (
+    python cli.py check-env >> %logfile% 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ❌ CLI tool test failed
+        echo CLI tool test failed >> %logfile%
+    ) else (
+        echo ✅ CLI tool is working
+        echo CLI tool test passed >> %logfile%
+    )
 ) else (
-    echo ✅ CLI tool is working
-    echo CLI tool test passed >> %logfile%
+    echo ⚠️  CLI tool not found, skipping test
+    echo CLI tool not found >> %logfile%
 )
 
 echo 🔍 Testing Docker build...
-docker build -t fastapi-app-test . >> %logfile% 2>&1
+docker build -t cicd-pipeline-test . >> %logfile% 2>&1
 if %ERRORLEVEL% neq 0 (
     echo ❌ Docker build test failed
     echo Docker build test failed >> %logfile%
@@ -218,17 +223,51 @@ if %ERRORLEVEL% neq 0 (
     echo Docker build test passed >> %logfile%
     
     REM Clean up test image
-    docker rmi fastapi-app-test >nul 2>&1
+    docker rmi cicd-pipeline-test >nul 2>&1
 )
 
 echo 🔍 Testing FastAPI app...
-python -c "from src.main import app; print('FastAPI import successful')" 2>nul
+if exist "app\main.py" (
+    python -c "from app.main import app; print('FastAPI import successful')" 2>nul
+) else if exist "src\main.py" (
+    python -c "from src.main import app; print('FastAPI import successful')" 2>nul
+) else (
+    echo ⚠️  FastAPI main.py not found
+    goto skip_fastapi_test
+)
+
 if %ERRORLEVEL% neq 0 (
     echo ❌ FastAPI app test failed
     echo FastAPI app test failed >> %logfile%
 ) else (
     echo ✅ FastAPI app imports successfully
     echo FastAPI app test passed >> %logfile%
+)
+
+:skip_fastapi_test
+
+echo 🔍 Testing Helm chart...
+if exist "helm\cicd-pipeline\Chart.yaml" (
+    helm lint helm\cicd-pipeline >> %logfile% 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo ❌ Helm chart validation failed
+        echo Helm chart validation failed >> %logfile%
+    ) else (
+        echo ✅ Helm chart is valid
+        echo Helm chart validation passed >> %logfile%
+    )
+) else (
+    echo ⚠️  Helm chart not found, skipping validation
+    echo Helm chart not found >> %logfile%
+)
+
+echo 🔍 Testing environment configuration...
+if exist "environments\values-dev.yaml" (
+    echo ✅ Environment configurations found
+    echo Environment configurations found >> %logfile%
+) else (
+    echo ⚠️  Environment configurations not found
+    echo Environment configurations not found >> %logfile%
 )
 echo.
 
@@ -263,7 +302,14 @@ if %ERROR_COUNT% equ 0 (
     echo 1. 🐳 Start local development: docker-compose up --build
     echo 2. ☸️  Start Minikube: scripts\minikube-manage.bat start
     echo 3. 🧪 Run tests: python -m pytest tests/
-    echo 4. 🚀 Deploy to dev: python cli.py deploy --env dev
+    echo 4. 🚀 Deploy with Helm: helm install cicd-pipeline helm\cicd-pipeline
+    echo 5. 📊 Validate pipeline: scripts\validate-complete-pipeline.bat
+    echo 6. 🎯 Production deploy: scripts\deploy-production.bat --help
+    echo.
+    echo 🔗 Quick Commands:
+    echo - System diagnostics: scripts\system-diagnostics.bat
+    echo - Complete validation: scripts\validate-complete-pipeline.bat
+    echo - Production deployment: scripts\deploy-production.bat
 ) else (
     echo ⚠️  Setup completed with %ERROR_COUNT% issues
     echo.
@@ -274,17 +320,37 @@ if %ERROR_COUNT% equ 0 (
     echo.
     echo For help:
     echo - Run: scripts\system-diagnostics.bat
-    echo - Review: PROJECT_STATUS.md
+    echo - Review: PROJECT_STATUS_FINAL.md
+    echo - Quick Setup: QUICK_SETUP_GUIDE.md
 )
 
 echo.
 echo 📚 Documentation:
 echo ================
-echo - Project Status: PROJECT_STATUS.md
-echo - Deployment Guide: DEPLOYMENT_GUIDE.md
-echo - Security Config: SECURITY_CONFIG.md
+echo - Project Status: PROJECT_STATUS_FINAL.md
+echo - Quick Setup Guide: QUICK_SETUP_GUIDE.md
+echo - Production Kit: PRODUCTION_DEPLOYMENT_KIT.md
+echo - Deployment Checklist: DEPLOYMENT_CHECKLIST.md
+echo - Helm Guide: HELM_DEPLOYMENT_GUIDE.md
+
+echo.
+echo 🏆 Advanced Features Available:
+echo ===============================
+echo - GitOps with ArgoCD (gitops\ directory)
+echo - Multi-environment deployments (environments\ directory)
+echo - Custom Grafana dashboards (monitoring\dashboards\)
+echo - Cross-platform scripts (Windows + Linux/macOS)
+echo - Comprehensive validation tools
+echo - Production-ready security configurations
 
 echo.
 echo Environment setup summary saved to: %logfile%
+echo.
+echo 🎯 Next Actions:
+echo ===============
+echo 1. Review setup log: %logfile%
+echo 2. Run system diagnostics: scripts\system-diagnostics.bat
+echo 3. Follow quick setup: QUICK_SETUP_GUIDE.md
+echo 4. Deploy locally: docker-compose up --build
 echo.
 pause
